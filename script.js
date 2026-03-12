@@ -9,13 +9,12 @@ let appState = {
         bedTime: '22:00'
     },
     daily: {}, // Stockage par jour
-    currentDay: new Date().toISOString().split('T')[0],
     foodDatabase: [
-        { id: 1, name: 'Riz', protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4, calories: 130, unitWeight: null },
-        { id: 2, name: 'Poulet', protein: 31, carbs: 0, fats: 3.6, fiber: 0, calories: 165, unitWeight: null },
-        { id: 3, name: 'Œuf', protein: 13, carbs: 1.1, fats: 11, fiber: 0, calories: 155, unitWeight: 60 },
-        { id: 4, name: 'Pomme', protein: 0.3, carbs: 14, fats: 0.2, fiber: 2.4, calories: 52, unitWeight: 150 },
-        { id: 5, name: 'Banane', protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, calories: 89, unitWeight: 120 }
+        { id: 1, name: 'Riz', protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4, unitWeight: null },
+        { id: 2, name: 'Poulet', protein: 31, carbs: 0, fats: 3.6, fiber: 0, unitWeight: null },
+        { id: 3, name: 'Œuf', protein: 13, carbs: 1.1, fats: 11, fiber: 0, unitWeight: 60 },
+        { id: 4, name: 'Pomme', protein: 0.3, carbs: 14, fats: 0.2, fiber: 2.4, unitWeight: 150 },
+        { id: 5, name: 'Banane', protein: 1.1, carbs: 23, fats: 0.3, fiber: 2.6, unitWeight: 120 }
     ],
     nextFoodId: 6,
     quantityType: 'weight',
@@ -23,14 +22,15 @@ let appState = {
     calendarDate: new Date()
 };
 
-// ==================== VARIABLES MÉDITATION ====================
+// ==================== VARIABLES GLOBALES ====================
 let meditationTimer = null;
 let meditationSeconds = 300;
 let meditationActive = false;
 let meditationPaused = false;
 let currentMeditationSession = null;
+let currentDay = null;
 
-// ==================== INITIALISATION ====================
+// ==================== FONCTION PRINCIPALE CORRIGÉE ====================
 function saveUserInfo() {
     console.log("saveUserInfo appelée");
     
@@ -46,6 +46,7 @@ function saveUserInfo() {
         return;
     }
     
+    // Sauvegarder les infos utilisateur
     appState.user.age = parseInt(age);
     appState.user.weight = parseFloat(weight);
     appState.user.height = parseFloat(height);
@@ -53,46 +54,68 @@ function saveUserInfo() {
     appState.user.wakeUpTime = wakeUpTime;
     appState.user.bedTime = bedTime;
     
-    // Initialiser le jour courant
-    if (!appState.daily[appState.currentDay]) {
-        appState.daily[appState.currentDay] = createEmptyDay();
+    // Définir le jour courant
+    const today = new Date().toISOString().split('T')[0];
+    currentDay = today;
+    
+    // Initialiser le jour courant dans appState.daily
+    if (!appState.daily[today]) {
+        appState.daily[today] = {
+            date: today,
+            sleep: { hours: 0, quality: '' },
+            water: 0,
+            waterHistory: [],
+            foods: [],
+            foodHistory: [],
+            exercise: { duration: 0, sessions: [] },
+            steps: 0,
+            meditation: { total: 0, sessions: [] },
+            bowel: []
+        };
     }
     
     // Fermer le modal
     document.getElementById('ageModal').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     
+    // Mettre à jour tout l'affichage
     updateUserInfoDisplay();
     calculateNeeds();
     updateAllDisplays();
     loadFoodSelect();
     updateFoodDatabaseList();
     updateTodayFoodsList();
+    
+    // Démarrer les systèmes
     startRealTimeUpdates();
     requestNotificationPermission();
     saveState();
+    
+    // Ajouter une notification de bienvenue
+    addNotification('👋 Bienvenue', 'Votre assistant santé est prêt !');
 }
 
-function createEmptyDay() {
-    return {
-        date: appState.currentDay,
-        sleep: { hours: 0, quality: '' },
-        water: 0,
-        waterHistory: [],
-        foods: [],
-        foodHistory: [],
-        exercise: { duration: 0, sessions: [] },
-        steps: 0,
-        meditation: { total: 0, sessions: [] },
-        bowel: []
-    };
-}
-
+// ==================== FONCTIONS D'ACCÈS AUX DONNÉES ====================
 function getTodayData() {
-    if (!appState.daily[appState.currentDay]) {
-        appState.daily[appState.currentDay] = createEmptyDay();
+    if (!currentDay) {
+        currentDay = new Date().toISOString().split('T')[0];
     }
-    return appState.daily[appState.currentDay];
+    
+    if (!appState.daily[currentDay]) {
+        appState.daily[currentDay] = {
+            date: currentDay,
+            sleep: { hours: 0, quality: '' },
+            water: 0,
+            waterHistory: [],
+            foods: [],
+            foodHistory: [],
+            exercise: { duration: 0, sessions: [] },
+            steps: 0,
+            meditation: { total: 0, sessions: [] },
+            bowel: []
+        };
+    }
+    return appState.daily[currentDay];
 }
 
 // ==================== TEMPS RÉEL ====================
@@ -113,20 +136,33 @@ function updateDateTime() {
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     
-    document.getElementById('currentTime').textContent = timeStr;
-    document.getElementById('currentDate').textContent = dateStr;
+    const timeEl = document.getElementById('currentTime');
+    const dateEl = document.getElementById('currentDate');
+    if (timeEl) timeEl.textContent = timeStr;
+    if (dateEl) dateEl.textContent = dateStr;
 }
 
 function checkDayChange() {
     const today = new Date().toISOString().split('T')[0];
-    if (today !== appState.currentDay) {
+    if (today !== currentDay) {
         // Sauvegarder le rapport du jour précédent
-        saveDailyReport(appState.currentDay);
+        saveDailyReport(currentDay);
         
         // Nouveau jour
-        appState.currentDay = today;
+        currentDay = today;
         if (!appState.daily[today]) {
-            appState.daily[today] = createEmptyDay();
+            appState.daily[today] = {
+                date: today,
+                sleep: { hours: 0, quality: '' },
+                water: 0,
+                waterHistory: [],
+                foods: [],
+                foodHistory: [],
+                exercise: { duration: 0, sessions: [] },
+                steps: 0,
+                meditation: { total: 0, sessions: [] },
+                bowel: []
+            };
         }
         
         updateAllDisplays();
@@ -143,100 +179,6 @@ function saveDailyReport(date) {
     dayData.scores = scores;
     
     saveState();
-}
-
-// ==================== NOTIFICATIONS ====================
-async function requestNotificationPermission() {
-    if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            addNotification('✅ Notifications activées', 'Vous recevrez des rappels');
-        }
-    }
-}
-
-function addNotification(title, message) {
-    const time = new Date().toLocaleTimeString();
-    appState.notifications.push({ title, message, time, read: false });
-    if (appState.notifications.length > 20) {
-        appState.notifications.shift();
-    }
-    updateNotificationBell();
-    
-    // Notification système
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body: message });
-    }
-}
-
-function showNotifications() {
-    const panel = document.getElementById('notificationPanel');
-    const list = document.getElementById('notificationsList');
-    
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-        return;
-    }
-    
-    let html = '';
-    if (appState.notifications.length === 0) {
-        html = '<div class="notification-item">Aucune notification</div>';
-    } else {
-        appState.notifications.forEach(n => {
-            html += `<div class="notification-item">
-                        <strong>${n.title}</strong>
-                        <p>${n.message}</p>
-                        <small>${n.time}</small>
-                    </div>`;
-            n.read = true;
-        });
-    }
-    
-    list.innerHTML = html;
-    panel.style.display = 'block';
-    updateNotificationBell();
-}
-
-function closeNotifications() {
-    document.getElementById('notificationPanel').style.display = 'none';
-}
-
-function updateNotificationBell() {
-    const unread = appState.notifications.filter(n => !n.read).length;
-    const bell = document.getElementById('notificationBell');
-    if (bell) {
-        bell.innerHTML = unread > 0 ? `🔔 (${unread})` : '🔔';
-    }
-}
-
-function checkReminders() {
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const today = getTodayData();
-    
-    // Rappel d'eau toutes les heures si < 70%
-    const waterPercent = (today.water / appState.waterTarget) * 100;
-    if (waterPercent < 70 && now.getMinutes() === 0) {
-        addNotification('💧 Rappel d\'eau', 'Pensez à boire de l\'eau');
-    }
-    
-    // Rappel protéines à 12h et 19h
-    if ((currentTime === '12:00' || currentTime === '19:00')) {
-        const protein = today.foods.reduce((s, f) => s + f.protein, 0);
-        if (protein < appState.proteinTarget * 0.5) {
-            addNotification('🥩 Rappel protéines', 'Vous n\'avez pas assez mangé de protéines');
-        }
-    }
-    
-    // Rappel coucher
-    if (currentTime === appState.user.bedTime) {
-        addNotification('😴 Heure du coucher', 'Pensez à aller dormir');
-    }
-    
-    // Rappel méditation à 18h
-    if (currentTime === '18:00') {
-        addNotification('🧘 Méditation', 'Prenez 10 minutes pour méditer');
-    }
 }
 
 // ==================== CALCULS ====================
@@ -286,7 +228,7 @@ function calculateNeeds() {
 function calculateDailyScores(dayData) {
     const waterScore = Math.min((dayData.water / appState.waterTarget) * 100, 100);
     
-    const protein = dayData.foods.reduce((s, f) => s + f.protein, 0);
+    const protein = dayData.foods.reduce((s, f) => s + (f.protein || 0), 0);
     const proteinScore = Math.min((protein / appState.proteinTarget) * 100, 100);
     
     const activityScore = Math.min(
@@ -327,10 +269,13 @@ function updateAllDisplays() {
     updateRecommendations(today);
     
     // Animation
-    document.querySelector('.real-time-indicator').classList.add('updated');
-    setTimeout(() => {
-        document.querySelector('.real-time-indicator').classList.remove('updated');
-    }, 500);
+    const indicator = document.querySelector('.real-time-indicator');
+    if (indicator) {
+        indicator.classList.add('updated');
+        setTimeout(() => {
+            indicator.classList.remove('updated');
+        }, 500);
+    }
 }
 
 function updateNutritionDisplay(today) {
@@ -436,7 +381,7 @@ function updateRecommendations(today) {
         recs.push('💧 Buvez plus d\'eau');
     }
     
-    const protein = today.foods.reduce((s, f) => s + f.protein, 0);
+    const protein = today.foods.reduce((s, f) => s + (f.protein || 0), 0);
     if (protein < appState.proteinTarget * 0.7) {
         recs.push('🥩 Mangez plus de protéines');
     }
@@ -461,6 +406,95 @@ function updateRecommendations(today) {
         } else {
             recDiv.innerHTML = '<h3>🌟 Parfait ! Vous êtes à jour</h3>';
         }
+    }
+}
+
+// ==================== NOTIFICATIONS ====================
+async function requestNotificationPermission() {
+    if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            addNotification('✅ Notifications activées', 'Vous recevrez des rappels');
+        }
+    }
+}
+
+function addNotification(title, message) {
+    const time = new Date().toLocaleTimeString();
+    appState.notifications.push({ title, message, time, read: false });
+    if (appState.notifications.length > 20) {
+        appState.notifications.shift();
+    }
+    updateNotificationBell();
+    
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body: message });
+    }
+}
+
+function showNotifications() {
+    const panel = document.getElementById('notificationPanel');
+    const list = document.getElementById('notificationsList');
+    
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    let html = '';
+    if (appState.notifications.length === 0) {
+        html = '<div class="notification-item">Aucune notification</div>';
+    } else {
+        appState.notifications.forEach(n => {
+            html += `<div class="notification-item">
+                        <strong>${n.title}</strong>
+                        <p>${n.message}</p>
+                        <small>${n.time}</small>
+                    </div>`;
+            n.read = true;
+        });
+    }
+    
+    list.innerHTML = html;
+    panel.style.display = 'block';
+    updateNotificationBell();
+}
+
+function closeNotifications() {
+    document.getElementById('notificationPanel').style.display = 'none';
+}
+
+function updateNotificationBell() {
+    const unread = appState.notifications.filter(n => !n.read).length;
+    const bell = document.getElementById('notificationBell');
+    if (bell) {
+        bell.innerHTML = unread > 0 ? `🔔 (${unread})` : '🔔';
+    }
+}
+
+function checkReminders() {
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const today = getTodayData();
+    
+    const waterPercent = (today.water / appState.waterTarget) * 100;
+    if (waterPercent < 70 && now.getMinutes() === 0) {
+        addNotification('💧 Rappel d\'eau', 'Pensez à boire de l\'eau');
+    }
+    
+    if ((currentTime === '12:00' || currentTime === '19:00')) {
+        const protein = today.foods.reduce((s, f) => s + (f.protein || 0), 0);
+        if (protein < appState.proteinTarget * 0.5) {
+            addNotification('🥩 Rappel protéines', 'Vous n\'avez pas assez mangé de protéines');
+        }
+    }
+    
+    if (currentTime === appState.user.bedTime) {
+        addNotification('😴 Heure du coucher', 'Pensez à aller dormir');
+    }
+    
+    if (currentTime === '18:00') {
+        addNotification('🧘 Méditation', 'Prenez 10 minutes pour méditer');
     }
 }
 
@@ -489,22 +523,19 @@ function showCalendar() {
     
     let html = '';
     
-    // Jours de la semaine
     const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     weekDays.forEach(day => {
         html += `<div class="calendar-day header">${day}</div>`;
     });
     
-    // Cases vides avant le premier jour
     for (let i = 1; i < (firstDay === 0 ? 6 : firstDay - 1); i++) {
         html += '<div class="calendar-day empty"></div>';
     }
     
-    // Jours du mois
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         const hasData = appState.daily[dateStr] && appState.daily[dateStr].foods.length > 0;
-        const isToday = dateStr === appState.currentDay;
+        const isToday = dateStr === currentDay;
         
         html += `<div class="calendar-day ${hasData ? 'has-data' : ''} ${isToday ? 'today' : ''}" 
                       onclick="showDailyReport('${dateStr}')">
@@ -527,12 +558,12 @@ function showDailyReport(dateStr) {
     
     if (!dayData) {
         reportDiv.innerHTML = '<h3>Aucune donnée pour ce jour</h3>';
-        statsDiv.innerHTML = '';
+        if (statsDiv) statsDiv.innerHTML = '';
         return;
     }
     
     const scores = dayData.scores || calculateDailyScores(dayData);
-    const protein = dayData.foods.reduce((s, f) => s + f.protein, 0);
+    const protein = dayData.foods.reduce((s, f) => s + (f.protein || 0), 0);
     
     reportDiv.innerHTML = `
         <h3>Rapport du ${new Date(dateStr).toLocaleDateString('fr-FR')}</h3>
@@ -547,16 +578,18 @@ function showDailyReport(dateStr) {
         </div>
     `;
     
-    statsDiv.innerHTML = `
-        <div class="report-stats">
-            <div class="report-item">💧 ${scores.water}%</div>
-            <div class="report-item">🥩 ${scores.protein}%</div>
-            <div class="report-item">🏃 ${scores.activity}%</div>
-            <div class="report-item">😴 ${scores.sleep}%</div>
-            <div class="report-item">🧘 ${scores.meditation}%</div>
-            <div class="report-item">⭐ ${scores.global}%</div>
-        </div>
-    `;
+    if (statsDiv) {
+        statsDiv.innerHTML = `
+            <div class="report-stats">
+                <div class="report-item">💧 ${scores.water}%</div>
+                <div class="report-item">🥩 ${scores.protein}%</div>
+                <div class="report-item">🏃 ${scores.activity}%</div>
+                <div class="report-item">😴 ${scores.sleep}%</div>
+                <div class="report-item">🧘 ${scores.meditation}%</div>
+                <div class="report-item">⭐ ${scores.global}%</div>
+            </div>
+        `;
+    }
 }
 
 // ==================== FONCTIONS EAU ====================
@@ -888,7 +921,6 @@ function addNewFood() {
     
     appState.foodDatabase.push(newFood);
     
-    // Reset form
     ['newFoodName', 'newFoodProtein', 'newFoodCarbs', 'newFoodFats', 'newFoodFiber', 'newFoodUnitWeight']
         .forEach(id => document.getElementById(id).value = '');
     
@@ -968,7 +1000,7 @@ function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sante-${appState.currentDay}.json`;
+    a.download = `sante-${currentDay}.json`;
     a.click();
 }
 
@@ -982,7 +1014,6 @@ function resetAllData() {
 
 // ==================== CONFIRMATION ====================
 function confirmAction() {
-    // À implémenter si besoin
     closeConfirmModal();
 }
 
@@ -1001,11 +1032,27 @@ function loadSavedData() {
         try {
             const parsed = JSON.parse(saved);
             if (parsed.user && parsed.user.age) {
-                appState = parsed;
-                appState.currentDay = new Date().toISOString().split('T')[0];
+                appState.user = parsed.user;
+                appState.foodDatabase = parsed.foodDatabase || appState.foodDatabase;
+                appState.nextFoodId = parsed.nextFoodId || 6;
+                appState.daily = parsed.daily || {};
+                appState.notifications = parsed.notifications || [];
                 
-                if (!appState.daily[appState.currentDay]) {
-                    appState.daily[appState.currentDay] = createEmptyDay();
+                currentDay = new Date().toISOString().split('T')[0];
+                
+                if (!appState.daily[currentDay]) {
+                    appState.daily[currentDay] = {
+                        date: currentDay,
+                        sleep: { hours: 0, quality: '' },
+                        water: 0,
+                        waterHistory: [],
+                        foods: [],
+                        foodHistory: [],
+                        exercise: { duration: 0, sessions: [] },
+                        steps: 0,
+                        meditation: { total: 0, sessions: [] },
+                        bowel: []
+                    };
                 }
                 
                 document.getElementById('ageModal').style.display = 'none';
@@ -1030,10 +1077,13 @@ window.onload = function() {
     setMeditationTime(5);
     updateDateTime();
     
-    // Événements
-    document.getElementById('bowelNote')?.addEventListener('input', function() {
-        document.getElementById('bowelNoteValue').textContent = this.value + '/10';
-    });
+    const bowelNote = document.getElementById('bowelNote');
+    if (bowelNote) {
+        bowelNote.addEventListener('input', function() {
+            const value = document.getElementById('bowelNoteValue');
+            if (value) value.textContent = this.value + '/10';
+        });
+    }
 };
 
 // Sauvegarde automatique toutes les 30 secondes
