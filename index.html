@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Assistant Santé</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- MODAL D'ÂGE -->
+        <div id="ageModal" class="modal" style="display: flex;">
+            <div class="modal-content">
+                <h2>Bienvenue sur votre Assistant Santé</h2>
+                <p>Personnalisons votre expérience</p>
+                
+                <div class="form-group">
+                    <label>Âge :</label>
+                    <input type="number" id="userAge" placeholder="Entrez votre âge" min="1" max="120">
+                </div>
+                
+                <div class="form-group">
+                    <label>Poids (kg) :</label>
+                    <input type="number" id="userWeight" placeholder="Entrez votre poids" step="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label>Taille (cm) :</label>
+                    <input type="number" id="userHeight" placeholder="Entrez votre taille">
+                </div>
+                
+                <div class="form-group">
+                    <label>Sexe :</label>
+                    <select id="userGender">
+                        <option value="male">Homme</option>
+                        <option value="female">Femme</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Heure de réveil :</label>
+                    <input type="time" id="wakeUpTime" value="07:00">
+                </div>
+                
+                <div class="form-group">
+                    <label>Heure de coucher :</label>
+                    <input type="time" id="bedTime" value="22:00">
+                </div>
+                
+                <button onclick="saveUserInfo()" class="btn btn-primary">Commencer</button>
+            </div>
+        </div>
+
+        <!-- APPLICATION PRINCIPALE -->
+        <div id="mainApp" style="display: none;">
+            <!-- En-tête avec notifications -->
+            <div class="header">
+                <div>
+                    <h1>Assistant Santé</h1>
+                    <div class="user-info" id="userInfoDisplay"></div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" onclick="showSection('calendrier')">📅</button>
+                    <button class="btn-icon" onclick="showSection('profile')">⚙️</button>
+                    <button class="btn-icon" onclick="showNotifications()" id="notificationBell">🔔</button>
+                </div>
+            </div>
+
+            <!-- Panneau de notifications -->
+            <div id="notificationPanel" class="notification-panel" style="display: none;">
+                <div class="notification-header">
+                    <h3>Notifications</h3>
+                    <button onclick="closeNotifications()">✕</button>
+                </div>
+                <div id="notificationsList" class="notifications-list"></div>
+            </div>
+
+            <!-- Indicateur temps réel -->
+            <div class="real-time-indicator">
+                <span>Mise à jour en temps réel</span>
+                <span class="live-dot">●</span>
+                <span id="currentTime"></span>
+            </div>
+
+            <!-- Résumé du jour avec scores -->
+            <div class="summary-section">
+                <h2>Aujourd'hui <span id="currentDate"></span></h2>
+                <div class="progress-grid">
+                    <div class="progress-item" onclick="showSection('colon')">
+                        <div class="progress-circle" id="colonCircle">
+                            <span class="progress-value">0%</span>
+                        </div>
+                        <span class="progress-label">Côlon</span>
+                    </div>
+                    <div class="progress-item" onclick="showSection('nutrition')">
+                        <div class="progress-circle" id="nutritionCircle">
+                            <span class="progress-value">0%</span>
+                        </div>
+                        <span class="progress-label">Nutrition</span>
+                    </div>
+                    <div class="progress-item" onclick="showSection('hydration')">
+                        <div class="progress-circle" id="hydrationCircle">
+                            <span class="progress-value">0%</span>
+                        </div>
+                        <span class="progress-label">Hydratation</span>
+                    </div>
+                    <div class="progress-item" onclick="showSection('activite')">
+                        <div class="progress-circle" id="activityCircle">
+                            <span class="progress-value">0%</span>
+                        </div>
+                        <span class="progress-label">Activité</span>
+                    </div>
+                    <div class="progress-item" onclick="showSection('sommeil')">
+                        <div class="progress-circle" id="sleepCircle">
+                            <span class="progress-value">0%</span>
+                        </div>
+                        <span class="progress-label">Sommeil</span>
+                    </div>
+                    <div class="progress-item" onclick="showSection('meditation')">
+                        <div class="progress-circle" id="meditationCircle">
+                            <span class="progress-value">0%</span>
+                        </div>
+                        <span class="progress-label">Méditation</span>
+                    </div>
+                </div>
+                <div class="global-score" id="globalScore">Score global: 0%</div>
+            </div>
+
+            <!-- Navigation rapide -->
+            <div class="nav-grid">
+                <button class="nav-btn" onclick="showSection('colon')">Côlon</button>
+                <button class="nav-btn" onclick="showSection('nutrition')">Nutrition</button>
+                <button class="nav-btn" onclick="showSection('hydration')">Eau</button>
+                <button class="nav-btn" onclick="showSection('activite')">Activité</button>
+                <button class="nav-btn" onclick="showSection('sommeil')">Sommeil</button>
+                <button class="nav-btn" onclick="showSection('meditation')">Méditation</button>
+                <button class="nav-btn" onclick="showSection('aliments')">Aliments</button>
+                <button class="nav-btn" onclick="showSection('calendrier')">Historique</button>
+            </div>
+
+            <!-- ZONE DE CONTENU -->
+            <div id="contentArea">
+                <!-- SECTION CÔLON -->
+                <div id="colonSection" class="section active">
+                    <div class="section-header">
+                        <h2>Suivi du côlon</h2>
+                        <button class="btn-undo" onclick="undoLastBowel()">↩ Annuler</button>
+                    </div>
+                    
+                    <div class="colon-stats">
+                        <div class="stat-row">
+                            <span>État actuel :</span>
+                            <span class="stat-value" id="colonStatus">Normal</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Dernière selle :</span>
+                            <span class="stat-value" id="lastBowel">Non enregistrée</span>
+                        </div>
+                    </div>
+
+                    <div class="colon-tracker">
+                        <h3>Enregistrer une selle</h3>
+                        
+                        <div class="input-group">
+                            <label>Heure :</label>
+                            <input type="time" id="bowelTime" value="08:00">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Type (échelle de Bristol) :</label>
+                            <select id="bowelType" onchange="updateBristolInfo()">
+                                <option value="1">Type 1 - Petites boules dures</option>
+                                <option value="2">Type 2 - En forme de saucisse grumeleuse</option>
+                                <option value="3">Type 3 - En forme de saucisse avec craquelures</option>
+                                <option value="4" selected>Type 4 - En forme de saucisse lisse</option>
+                                <option value="5">Type 5 - Morceaux mous aux bords nets</option>
+                                <option value="6">Type 6 - Morceaux duveteux aux bords déchiquetés</option>
+                                <option value="7">Type 7 - Liquide sans morceaux solides</option>
+                            </select>
+                        </div>
+
+                        <div class="bristol-info" id="bristolInfo">
+                            Type 4 : Idéal - Transit normal
+                        </div>
+
+                        <div class="input-group">
+                            <label>Symptômes :</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" id="symptomPain"> Douleur</label>
+                                <label><input type="checkbox" id="symptomBloating"> Ballonnement</label>
+                                <label><input type="checkbox" id="symptomGas"> Gaz</label>
+                            </div>
+                        </div>
+
+                        <button onclick="logBowel()" class="btn btn-primary">Enregistrer</button>
+                    </div>
+
+                    <div class="colon-advice" id="colonAdvice">
+                        <h3>Recommandations</h3>
+                        <ul id="colonAdviceList">
+                            <li>Buvez plus d'eau</li>
+                            <li>Augmentez les fibres</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- SECTION NUTRITION -->
+                <div id="nutritionSection" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>Suivi nutritionnel</h2>
+                        <div>
+                            <button class="btn-undo" onclick="undoLastFood()">↩ Annuler</button>
+                            <button class="btn-undo" onclick="clearAllFoods()">🗑️</button>
+                        </div>
+                    </div>
+                    
+                    <div class="nutrition-summary">
+                        <div class="macro-row">
+                            <span>Protéines :</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="proteinBar" style="width: 0%"></div>
+                            </div>
+                            <span><span id="proteinEaten">0</span>/<span id="proteinNeeded">50</span>g</span>
+                        </div>
+                        <div class="macro-row">
+                            <span>Glucides :</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="carbsBar" style="width: 0%"></div>
+                            </div>
+                            <span><span id="carbsEaten">0</span>/<span id="carbsNeeded">250</span>g</span>
+                        </div>
+                        <div class="macro-row">
+                            <span>Lipides :</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="fatsBar" style="width: 0%"></div>
+                            </div>
+                            <span><span id="fatsEaten">0</span>/<span id="fatsNeeded">70</span>g</span>
+                        </div>
+                        <div class="macro-row">
+                            <span>Fibres :</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="fiberBar" style="width: 0%"></div>
+                            </div>
+                            <span><span id="fiberEaten">0</span>/<span id="fiberNeeded">30</span>g</span>
+                        </div>
+                    </div>
+
+                    <div class="add-food-section">
+                        <h3>Ajouter un aliment</h3>
+                        
+                        <div class="input-group">
+                            <label>Aliment :</label>
+                            <select id="foodSelect">
+                                <option value="">Choisir...</option>
+                            </select>
+                        </div>
+
+                        <div class="quantity-type-selector">
+                            <button class="qty-btn active" onclick="setQuantityType('weight')">Poids (g)</button>
+                            <button class="qty-btn" onclick="setQuantityType('unit')">Unité</button>
+                        </div>
+
+                        <div id="weightInput" class="input-group">
+                            <label>Quantité (g) :</label>
+                            <input type="number" id="foodQuantity" value="100" min="1" step="10">
+                        </div>
+
+                        <div id="unitInput" class="input-group" style="display: none;">
+                            <label>Nombre :</label>
+                            <input type="number" id="foodUnits" value="1" min="0.5" step="0.5">
+                            <small id="unitEquivalent"></small>
+                        </div>
+
+                        <button onclick="addFood()" class="btn btn-primary">Ajouter</button>
+                    </div>
+
+                    <div class="today-foods">
+                        <h3>Aliments du jour</h3>
+                        <ul id="foodList"></ul>
+                    </div>
+
+                    <div id="missingNutrients" class="missing-nutrients"></div>
+                </div>
+
+                <!-- SECTION HYDRATATION -->
+                <div id="hydrationSection" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>Hydratation</h2>
+                        <button class="btn-undo" onclick="undoLastWater()">↩ Annuler</button>
+                    </div>
+                    
+                    <div class="big-circle" id="hydrationBigCircle">
+                        <span class="big-value" id="hydrationPercent">0%</span>
+                    </div>
+                    <p class="water-target"><span id="waterConsumed">0</span>ml / <span id="waterTarget">2000</span>ml</p>
+
+                    <div class="water-input-large">
+                        <input type="number" id="customWaterAmount" placeholder="Quantité en ml" value="250">
+                    </div>
+                    
+                    <div class="water-presets">
+                        <button class="water-preset" onclick="addWater(100)">100ml</button>
+                        <button class="water-preset" onclick="addWater(250)">250ml</button>
+                        <button class="water-preset" onclick="addWater(500)">500ml</button>
+                        <button class="water-preset" onclick="addWater(1000)">1L</button>
+                    </div>
+
+                    <button class="btn-primary" onclick="addWater(parseFloat(document.getElementById('customWaterAmount').value))">Ajouter</button>
+                    <button class="btn-secondary" onclick="clearWater()">Réinitialiser</button>
+                </div>
+
+                <!-- SECTION ACTIVITÉ -->
+                <div id="activiteSection" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>Activité</h2>
+                        <div>
+                            <button class="btn-undo" onclick="undoLastExercise()">↩ Annuler</button>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Pas aujourd'hui</span>
+                            <span class="stat-number" id="stepsCount">0</span>
+                            <div class="stat-actions">
+                                <input type="number" id="stepsInput" placeholder="Pas" class="small-input">
+                                <button onclick="addSteps()" class="btn-small">+</button>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Exercice total</span>
+                            <span class="stat-number" id="exerciseTime">0 min</span>
+                        </div>
+                    </div>
+
+                    <div class="exercise-form">
+                        <h3>Ajouter exercice</h3>
+                        <select id="exerciseType">
+                            <option value="walking">Marche</option>
+                            <option value="running">Course</option>
+                            <option value="yoga">Yoga</option>
+                        </select>
+                        <input type="number" id="exerciseDuration" placeholder="Durée (min)" value="30">
+                        <button onclick="logExercise()" class="btn-primary">Ajouter</button>
+                    </div>
+                </div>
+
+                <!-- SECTION SOMMEIL -->
+                <div id="sommeilSection" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>Sommeil</h2>
+                        <button class="btn-undo" onclick="undoLastSleep()">↩ Annuler</button>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">Cette nuit</span>
+                            <span class="stat-number" id="lastSleep">0h</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Objectif</span>
+                            <span class="stat-number" id="sleepTarget">8h</span>
+                        </div>
+                    </div>
+
+                    <div class="sleep-form">
+                        <h3>Enregistrer</h3>
+                        <input type="number" id="sleepHours" placeholder="Heures" value="8" step="0.5">
+                        <select id="sleepQuality">
+                            <option value="poor">Mauvaise</option>
+                            <option value="good">Bonne</option>
+                            <option value="excellent">Excellente</option>
+                        </select>
+                        <button onclick="logSleep()" class="btn-primary">Enregistrer</button>
+                    </div>
+                </div>
+
+                <!-- SECTION MÉDITATION -->
+                <div id="meditationSection" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>Méditation</h2>
+                        <button class="btn-undo" onclick="undoLastMeditation()">↩ Annuler</button>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <span class="stat-label">Total aujourd'hui</span>
+                        <span class="stat-number" id="meditationTotal">0 min</span>
+                    </div>
+
+                    <div class="meditation-timer">
+                        <div class="timer-display" id="meditationTimer">05:00</div>
+                        <div class="timer-presets">
+                            <button class="timer-preset" onclick="setMeditationTime(5)">5 min</button>
+                            <button class="timer-preset" onclick="setMeditationTime(10)">10 min</button>
+                            <button class="timer-preset" onclick="setMeditationTime(15)">15 min</button>
+                        </div>
+                        <button onclick="startMeditation()" class="btn-primary" id="startMeditationBtn">Démarrer</button>
+                        <button onclick="pauseMeditation()" class="btn-secondary" id="pauseMeditationBtn" style="display: none;">Pause</button>
+                        <button onclick="stopMeditation()" class="btn-secondary" id="stopMeditationBtn" style="display: none;">Arrêter</button>
+                        <button onclick="logMeditation()" class="btn-primary" id="logMeditationBtn">Enregistrer</button>
+                    </div>
+                </div>
+
+                <!-- SECTION CALENDRIER/RAPPORTS -->
+                <div id="calendrierSection" class="section" style="display: none;">
+                    <h2>Historique quotidien</h2>
+                    
+                    <div class="calendar-nav">
+                        <button onclick="changeMonth(-1)">←</button>
+                        <span id="currentMonth">Mars 2026</span>
+                        <button onclick="changeMonth(1)">→</button>
+                    </div>
+
+                    <div class="calendar-grid" id="calendar"></div>
+
+                    <div class="daily-report" id="dailyReport">
+                        <h3>Sélectionnez un jour pour voir le rapport</h3>
+                    </div>
+
+                    <div class="report-stats" id="reportStats"></div>
+                </div>
+
+                <!-- SECTION ALIMENTS -->
+                <div id="alimentsSection" class="section" style="display: none;">
+                    <h2>Base de données aliments</h2>
+                    
+                    <div class="add-food-form">
+                        <h3>Ajouter un aliment</h3>
+                        <input type="text" id="newFoodName" placeholder="Nom">
+                        <input type="number" id="newFoodProtein" placeholder="Protéines/100g" step="0.1">
+                        <input type="number" id="newFoodCarbs" placeholder="Glucides/100g" step="0.1">
+                        <input type="number" id="newFoodFats" placeholder="Lipides/100g" step="0.1">
+                        <input type="number" id="newFoodFiber" placeholder="Fibres/100g" step="0.1">
+                        <input type="number" id="newFoodUnitWeight" placeholder="Poids unitaire (g)">
+                        <button onclick="addNewFood()" class="btn-primary">Ajouter</button>
+                    </div>
+
+                    <div class="food-list">
+                        <h3>Mes aliments</h3>
+                        <ul id="foodDatabaseList"></ul>
+                    </div>
+                </div>
+
+                <!-- SECTION PROFIL -->
+                <div id="profileSection" class="section" style="display: none;">
+                    <h2>Mon profil</h2>
+                    
+                    <div class="profile-info">
+                        <div class="info-row"><span>Âge :</span> <span id="profileAge">-</span></div>
+                        <div class="info-row"><span>Poids :</span> <span id="profileWeight">-</span></div>
+                        <div class="info-row"><span>Taille :</span> <span id="profileHeight">-</span></div>
+                        <div class="info-row"><span>IMC :</span> <span id="profileBMI">-</span></div>
+                        <div class="info-row"><span>Réveil :</span> <span id="profileWakeUp">07:00</span></div>
+                        <div class="info-row"><span>Coucher :</span> <span id="profileBedTime">22:00</span></div>
+                    </div>
+
+                    <button onclick="editProfile()" class="btn-secondary">Modifier</button>
+                    <button onclick="exportData()" class="btn-secondary">Exporter données</button>
+                    <button onclick="resetAllData()" class="btn-secondary">Réinitialiser</button>
+                </div>
+            </div>
+
+            <!-- Recommandations en temps réel -->
+            <div class="recommendations" id="recommendations"></div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMATION -->
+    <div id="confirmModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Confirmer</h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button onclick="confirmAction()" class="btn-primary">Oui</button>
+                <button onclick="closeConfirmModal()" class="btn-secondary">Non</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ÉDITION PROFIL -->
+    <div id="editProfileModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Modifier profil</h3>
+            <input type="number" id="editAge" placeholder="Âge">
+            <input type="number" id="editWeight" placeholder="Poids (kg)" step="0.1">
+            <input type="number" id="editHeight" placeholder="Taille (cm)">
+            <select id="editGender">
+                <option value="male">Homme</option>
+                <option value="female">Femme</option>
+            </select>
+            <input type="time" id="editWakeUp" value="07:00">
+            <input type="time" id="editBedTime" value="22:00">
+            <div class="modal-actions">
+                <button onclick="saveProfileChanges()" class="btn-primary">Sauvegarder</button>
+                <button onclick="closeEditModal()" class="btn-secondary">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
