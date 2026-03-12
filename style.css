@@ -15,6 +15,7 @@
     --success-light: #2ecc71;
     --warning: #f39c12;
     --danger: #e74c3c;
+    --danger-light: #f1948a;
     --light: #ecf0f1;
     --light-dark: #d5dbdb;
     --dark: #2c3e50;
@@ -26,6 +27,8 @@
     --shadow-hover: rgba(0, 0, 0, 0.15);
     --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
     --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+    --gradient-danger: linear-gradient(135deg, var(--danger) 0%, #c0392b 100%);
+    --gradient-success: linear-gradient(135deg, var(--success) 0%, #229954 100%);
 }
 
 body {
@@ -129,8 +132,8 @@ body {
     width: 40px;
     height: 40px;
     padding: 0;
-    background: var(--light);
-    border: none;
+    background: var(--white);
+    border: 2px solid var(--border);
     border-radius: 12px;
     cursor: pointer;
     font-size: 1.2rem;
@@ -139,14 +142,19 @@ body {
     justify-content: center;
     transition: all 0.2s ease;
     color: var(--primary);
-    box-shadow: 0 2px 5px var(--shadow);
+    box-shadow: 0 3px 8px var(--shadow);
 }
 
 .btn-icon:hover {
-    background: var(--primary);
+    background: var(--gradient-primary);
+    border-color: var(--primary);
     color: var(--white);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(44, 62, 80, 0.3);
+}
+
+.btn-icon:active {
+    transform: translateY(0);
 }
 
 /* TEMPS RÉEL */
@@ -284,22 +292,28 @@ body {
 .nav-btn {
     padding: 12px 5px;
     background: var(--white);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border);
     border-radius: 12px;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--gray);
-    box-shadow: 0 2px 5px var(--shadow);
+    box-shadow: 0 3px 8px var(--shadow);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .nav-btn:hover {
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: var(--white);
     border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(44, 62, 80, 0.3);
+}
+
+.nav-btn:active {
+    transform: translateY(0);
 }
 
 /* SECTIONS */
@@ -336,23 +350,59 @@ body {
     border-bottom: 2px solid var(--light);
 }
 
-/* BOUTONS AMÉLIORÉS */
+/* BOUTONS PRINCIPAUX */
 .btn {
     padding: 14px 20px;
     border: none;
     border-radius: 12px;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     width: 100%;
     margin-bottom: 10px;
     transition: all 0.2s ease;
     box-shadow: 0 3px 8px var(--shadow);
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn:last-child {
     margin-bottom: 0;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.btn:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    20% {
+        transform: scale(25, 25);
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(40, 40);
+    }
 }
 
 .btn-primary {
@@ -362,13 +412,12 @@ body {
 
 .btn-primary:hover {
     background: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(44, 62, 80, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(44, 62, 80, 0.4);
 }
 
 .btn-primary:active {
     transform: translateY(0);
-    box-shadow: 0 3px 10px rgba(44, 62, 80, 0.3);
 }
 
 .btn-secondary {
@@ -380,53 +429,195 @@ body {
 .btn-secondary:hover {
     background: var(--light);
     border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px var(--shadow);
+    color: var(--primary-dark);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px var(--shadow-hover);
 }
 
 .btn-secondary:active {
     transform: translateY(0);
 }
 
+/* BOUTON ANNULER */
 .btn-undo {
-    padding: 8px 16px;
+    padding: 10px 18px;
     background: var(--white);
     border: 2px solid var(--border);
     border-radius: 10px;
     cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
     color: var(--primary);
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 8px var(--shadow);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-undo:hover {
+    background: var(--gradient-danger);
+    border-color: var(--danger);
+    color: var(--white);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+}
+
+.btn-undo:active {
+    transform: translateY(0);
+}
+
+/* BOUTON PETIT */
+.btn-small {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    width: auto;
+    margin: 0;
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--primary);
+    cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 2px 5px var(--shadow);
 }
 
-.btn-undo:hover {
-    background: var(--danger);
-    border-color: var(--danger);
+.btn-small:hover {
+    background: var(--gradient-accent);
+    border-color: var(--accent);
     color: var(--white);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
 }
 
-.btn-small {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-    width: auto;
-    margin: 0;
-    background: var(--light);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--primary);
-    font-weight: 500;
+.btn-small:active {
+    transform: translateY(0);
+}
+
+/* BOUTON WATER PRESET */
+.water-preset {
+    padding: 12px 5px;
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 10px;
     cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary);
     transition: all 0.2s ease;
+    box-shadow: 0 3px 8px var(--shadow);
+    text-align: center;
 }
 
-.btn-small:hover {
-    background: var(--primary);
+.water-preset:hover {
+    background: var(--gradient-accent);
+    border-color: var(--accent);
+    color: var(--white);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+}
+
+.water-preset:active {
+    transform: translateY(0);
+}
+
+/* BOUTON TIMER PRESET */
+.timer-preset {
+    padding: 12px 20px;
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary);
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 8px var(--shadow);
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+}
+
+.timer-preset:hover {
+    background: var(--gradient-accent);
+    border-color: var(--accent);
+    color: var(--white);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+}
+
+.timer-preset:active {
+    transform: translateY(0);
+}
+
+/* BOUTON QUANTITY TYPE */
+.qty-btn {
+    flex: 1;
+    padding: 12px;
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px var(--shadow);
+}
+
+.qty-btn.active {
+    background: var(--gradient-primary);
+    border-color: var(--primary);
+    color: var(--white);
+    box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
+}
+
+.qty-btn:hover:not(.active) {
+    background: var(--light);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+}
+
+/* BOUTONS DANS LES CARTES STATISTIQUES */
+.stat-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 12px;
+    gap: 8px;
+}
+
+.stat-actions .btn-small {
+    min-width: 40px;
+}
+
+/* BOUTONS DU CALENDRIER */
+.calendar-nav button {
+    padding: 10px 20px;
+    border: none;
+    background: var(--white);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary);
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 8px var(--shadow);
+    border: 2px solid var(--border);
+}
+
+.calendar-nav button:hover {
+    background: var(--gradient-primary);
     color: var(--white);
     border-color: var(--primary);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(44, 62, 80, 0.3);
+}
+
+.calendar-nav button:active {
+    transform: translateY(0);
 }
 
 /* FORMULAIRES */
@@ -451,6 +642,7 @@ input, select {
     transition: all 0.2s ease;
     background: var(--white);
     color: var(--dark);
+    font-weight: 500;
 }
 
 input:focus, select:focus {
@@ -643,58 +835,11 @@ input:hover, select:hover {
     margin: 20px 0;
 }
 
-.water-preset {
-    padding: 12px 5px;
-    background: var(--white);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--primary);
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px var(--shadow);
-}
-
-.water-preset:hover {
-    background: var(--gradient-accent);
-    border-color: var(--accent);
-    color: var(--white);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
-}
-
 /* QUANTITY TYPE */
 .quantity-type-selector {
     display: flex;
     gap: 8px;
     margin-bottom: 20px;
-}
-
-.qty-btn {
-    flex: 1;
-    padding: 12px;
-    background: var(--white);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--gray);
-    transition: all 0.2s ease;
-}
-
-.qty-btn.active {
-    background: var(--gradient-primary);
-    border-color: var(--primary);
-    color: var(--white);
-    box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
-}
-
-.qty-btn:hover:not(.active) {
-    background: var(--light);
-    border-color: var(--primary);
-    color: var(--primary);
 }
 
 /* CHECKBOX */
@@ -751,33 +896,18 @@ input:hover, select:hover {
     flex-wrap: wrap;
 }
 
-.timer-preset {
-    padding: 12px 20px;
-    background: var(--white);
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--primary);
-    transition: all 0.2s ease;
-    flex: 1;
-    min-width: 80px;
-}
-
-.timer-preset:hover {
-    background: var(--gradient-accent);
-    border-color: var(--accent);
-    color: var(--white);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-}
-
 .timer-controls {
     display: flex;
     gap: 10px;
     justify-content: center;
     margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.timer-controls .btn-primary,
+.timer-controls .btn-secondary {
+    flex: 1;
+    min-width: 100px;
 }
 
 /* FOOD LISTS */
@@ -810,14 +940,16 @@ input:hover, select:hover {
 }
 
 .today-foods li button {
-    padding: 4px 8px;
+    padding: 6px 12px;
     background: var(--danger);
     color: var(--white);
     border: none;
     border-radius: 6px;
     cursor: pointer;
     font-size: 0.8rem;
+    font-weight: 600;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(231, 76, 60, 0.3);
 }
 
 .today-foods li button:hover {
@@ -933,26 +1065,6 @@ input:hover, select:hover {
     padding: 15px;
     background: var(--light);
     border-radius: 15px;
-}
-
-.calendar-nav button {
-    padding: 10px 20px;
-    border: none;
-    background: var(--white);
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--primary);
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px var(--shadow);
-}
-
-.calendar-nav button:hover {
-    background: var(--gradient-primary);
-    color: var(--white);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
 }
 
 #currentMonth {
@@ -1091,14 +1203,6 @@ input:hover, select:hover {
 .small-input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-}
-
-.stat-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 12px;
-    gap: 5px;
 }
 
 /* BRISTOL INFO */
@@ -1310,6 +1414,36 @@ input:hover, select:hover {
     
     .timer-display {
         font-size: 3.5rem;
+    }
+    
+    .btn {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .btn-undo {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+    
+    .btn-small {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .water-preset {
+        padding: 10px 3px;
+        font-size: 0.8rem;
+    }
+    
+    .timer-preset {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+    }
+    
+    .qty-btn {
+        padding: 10px;
+        font-size: 0.8rem;
     }
 }
 
