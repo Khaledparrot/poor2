@@ -8,7 +8,7 @@ let appState = {
         wakeUpTime: '07:00',
         bedTime: '22:00'
     },
-    daily: {}, // Stockage par jour
+    daily: {},
     foodDatabase: [
         { id: 1, name: 'Riz', protein: 2.7, carbs: 28, fats: 0.3, fiber: 0.4, unitWeight: null },
         { id: 2, name: 'Poulet', protein: 31, carbs: 0, fats: 3.6, fiber: 0, unitWeight: null },
@@ -19,7 +19,13 @@ let appState = {
     nextFoodId: 6,
     quantityType: 'weight',
     notifications: [],
-    calendarDate: new Date()
+    calendarDate: new Date(),
+    waterTarget: 2000,
+    proteinTarget: 50,
+    carbsTarget: 250,
+    fatsTarget: 70,
+    fiberTarget: 30,
+    sleepTarget: 8
 };
 
 // ==================== VARIABLES GLOBALES ====================
@@ -54,25 +60,26 @@ function saveUserInfo() {
     appState.user.wakeUpTime = wakeUpTime;
     appState.user.bedTime = bedTime;
     
+    // Calculer les besoins
+    calculateNeeds();
+    
     // Définir le jour courant
     const today = new Date().toISOString().split('T')[0];
     currentDay = today;
     
     // Initialiser le jour courant dans appState.daily
-    if (!appState.daily[today]) {
-        appState.daily[today] = {
-            date: today,
-            sleep: { hours: 0, quality: '' },
-            water: 0,
-            waterHistory: [],
-            foods: [],
-            foodHistory: [],
-            exercise: { duration: 0, sessions: [] },
-            steps: 0,
-            meditation: { total: 0, sessions: [] },
-            bowel: []
-        };
-    }
+    appState.daily[today] = {
+        date: today,
+        sleep: { hours: 0, quality: '' },
+        water: 0,
+        waterHistory: [],
+        foods: [],
+        foodHistory: [],
+        exercise: { duration: 0, sessions: [] },
+        steps: 0,
+        meditation: { total: 0, sessions: [] },
+        bowel: []
+    };
     
     // Fermer le modal
     document.getElementById('ageModal').style.display = 'none';
@@ -80,7 +87,6 @@ function saveUserInfo() {
     
     // Mettre à jour tout l'affichage
     updateUserInfoDisplay();
-    calculateNeeds();
     updateAllDisplays();
     loadFoodSelect();
     updateFoodDatabaseList();
@@ -97,13 +103,11 @@ function saveUserInfo() {
 
 // ==================== FONCTIONS D'ACCÈS AUX DONNÉES ====================
 function getTodayData() {
-    if (!currentDay) {
-        currentDay = new Date().toISOString().split('T')[0];
-    }
+    const today = new Date().toISOString().split('T')[0];
     
-    if (!appState.daily[currentDay]) {
-        appState.daily[currentDay] = {
-            date: currentDay,
+    if (!appState.daily[today]) {
+        appState.daily[today] = {
+            date: today,
             sleep: { hours: 0, quality: '' },
             water: 0,
             waterHistory: [],
@@ -115,7 +119,9 @@ function getTodayData() {
             bowel: []
         };
     }
-    return appState.daily[currentDay];
+    
+    currentDay = today;
+    return appState.daily[today];
 }
 
 // ==================== TEMPS RÉEL ====================
@@ -144,9 +150,11 @@ function updateDateTime() {
 
 function checkDayChange() {
     const today = new Date().toISOString().split('T')[0];
-    if (today !== currentDay) {
+    const oldDay = currentDay;
+    
+    if (today !== oldDay && oldDay) {
         // Sauvegarder le rapport du jour précédent
-        saveDailyReport(currentDay);
+        saveDailyReport(oldDay);
         
         // Nouveau jour
         currentDay = today;
@@ -281,12 +289,14 @@ function updateAllDisplays() {
 function updateNutritionDisplay(today) {
     let protein = 0, carbs = 0, fats = 0, fiber = 0;
     
-    today.foods.forEach(food => {
-        protein += food.protein || 0;
-        carbs += food.carbs || 0;
-        fats += food.fats || 0;
-        fiber += food.fiber || 0;
-    });
+    if (today && today.foods) {
+        today.foods.forEach(food => {
+            protein += food.protein || 0;
+            carbs += food.carbs || 0;
+            fats += food.fats || 0;
+            fiber += food.fiber || 0;
+        });
+    }
     
     setText('proteinEaten', Math.round(protein));
     setText('carbsEaten', Math.round(carbs));
@@ -305,6 +315,7 @@ function updateNutritionDisplay(today) {
 }
 
 function updateWaterDisplay(today) {
+    if (!today) return;
     const percent = (today.water / appState.waterTarget) * 100;
     const displayPercent = Math.min(Math.round(percent), 100);
     
@@ -321,34 +332,39 @@ function updateWaterDisplay(today) {
 }
 
 function updateActivityDisplay(today) {
-    setText('stepsCount', today.steps);
-    setText('exerciseTime', today.exercise.duration + ' min');
+    if (!today) return;
+    setText('stepsCount', today.steps || 0);
+    setText('exerciseTime', (today.exercise?.duration || 0) + ' min');
     
-    const score = ((today.steps / 8000) * 50) + ((today.exercise.duration / 30) * 50);
+    const score = ((today.steps / 8000) * 50) + ((today.exercise?.duration || 0) / 30 * 50);
     updateCircle('activity', score);
 }
 
 function updateSleepDisplay(today) {
-    setText('lastSleep', today.sleep.hours + 'h');
-    const percent = (today.sleep.hours / appState.sleepTarget) * 100;
+    if (!today) return;
+    setText('lastSleep', (today.sleep?.hours || 0) + 'h');
+    const percent = ((today.sleep?.hours || 0) / appState.sleepTarget) * 100;
     updateCircle('sleep', percent);
 }
 
 function updateMeditationDisplay(today) {
-    setText('meditationTotal', today.meditation.total + ' min');
-    const percent = (today.meditation.total / 10) * 100;
+    if (!today) return;
+    setText('meditationTotal', (today.meditation?.total || 0) + ' min');
+    const percent = ((today.meditation?.total || 0) / 10) * 100;
     updateCircle('meditation', percent);
 }
 
 function updateColonDisplay(today) {
-    if (today.bowel.length > 0) {
+    if (!today) return;
+    if (today.bowel && today.bowel.length > 0) {
         const last = today.bowel[today.bowel.length - 1];
         setText('lastBowel', last.time);
     }
-    updateCircle('colon', today.bowel.length > 0 ? 50 : 0);
+    updateCircle('colon', (today.bowel?.length || 0) > 0 ? 50 : 0);
 }
 
 function updateGlobalScore(today) {
+    if (!today) return;
     const scores = calculateDailyScores(today);
     setText('globalScore', `Score global: ${scores.global}%`);
 }
@@ -375,6 +391,8 @@ function setWidth(id, percent) {
 }
 
 function updateRecommendations(today) {
+    if (!today) return;
+    
     const recs = [];
     
     if (today.water < appState.waterTarget * 0.7) {
@@ -390,11 +408,11 @@ function updateRecommendations(today) {
         recs.push('👣 Marchez plus');
     }
     
-    if (today.meditation.total < 5) {
+    if (today.meditation?.total < 5) {
         recs.push('🧘 Méditez 5 minutes');
     }
     
-    if (today.bowel.length === 0) {
+    if (today.bowel?.length === 0) {
         recs.push('🚽 Enregistrez votre selle');
     }
     
@@ -534,8 +552,8 @@ function showCalendar() {
     
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-        const hasData = appState.daily[dateStr] && appState.daily[dateStr].foods.length > 0;
-        const isToday = dateStr === currentDay;
+        const hasData = appState.daily[dateStr] && appState.daily[dateStr].foods?.length > 0;
+        const isToday = dateStr === new Date().toISOString().split('T')[0];
         
         html += `<div class="calendar-day ${hasData ? 'has-data' : ''} ${isToday ? 'today' : ''}" 
                       onclick="showDailyReport('${dateStr}')">
@@ -563,17 +581,17 @@ function showDailyReport(dateStr) {
     }
     
     const scores = dayData.scores || calculateDailyScores(dayData);
-    const protein = dayData.foods.reduce((s, f) => s + (f.protein || 0), 0);
+    const protein = dayData.foods?.reduce((s, f) => s + (f.protein || 0), 0) || 0;
     
     reportDiv.innerHTML = `
         <h3>Rapport du ${new Date(dateStr).toLocaleDateString('fr-FR')}</h3>
         <div class="report-details">
-            <p>💧 Eau: ${dayData.water}ml / ${appState.waterTarget}ml (${scores.water}%)</p>
+            <p>💧 Eau: ${dayData.water || 0}ml / ${appState.waterTarget}ml (${scores.water}%)</p>
             <p>🥩 Protéines: ${Math.round(protein)}g / ${appState.proteinTarget}g (${scores.protein}%)</p>
-            <p>🏃 Pas: ${dayData.steps} | Exercice: ${dayData.exercise.duration}min (${scores.activity}%)</p>
-            <p>😴 Sommeil: ${dayData.sleep.hours}h (${scores.sleep}%)</p>
-            <p>🧘 Méditation: ${dayData.meditation.total}min (${scores.meditation}%)</p>
-            <p>🚽 Selles: ${dayData.bowel.length} fois</p>
+            <p>🏃 Pas: ${dayData.steps || 0} | Exercice: ${dayData.exercise?.duration || 0}min (${scores.activity}%)</p>
+            <p>😴 Sommeil: ${dayData.sleep?.hours || 0}h (${scores.sleep}%)</p>
+            <p>🧘 Méditation: ${dayData.meditation?.total || 0}min (${scores.meditation}%)</p>
+            <p>🚽 Selles: ${dayData.bowel?.length || 0} fois</p>
             <p><strong>⭐ Score global: ${scores.global}%</strong></p>
         </div>
     `;
@@ -597,6 +615,7 @@ function addWater(amount) {
     if (!amount || amount <= 0) return;
     const today = getTodayData();
     today.water += amount;
+    if (!today.waterHistory) today.waterHistory = [];
     today.waterHistory.push(amount);
     updateAllDisplays();
     saveState();
@@ -604,7 +623,7 @@ function addWater(amount) {
 
 function undoLastWater() {
     const today = getTodayData();
-    if (today.waterHistory.length > 0) {
+    if (today.waterHistory && today.waterHistory.length > 0) {
         today.water -= today.waterHistory.pop();
         if (today.water < 0) today.water = 0;
         updateAllDisplays();
@@ -670,6 +689,9 @@ function addFood() {
     };
     
     const today = getTodayData();
+    if (!today.foods) today.foods = [];
+    if (!today.foodHistory) today.foodHistory = [];
+    
     today.foods.push(consumed);
     today.foodHistory.push(today.foods.length - 1);
     
@@ -684,26 +706,30 @@ function updateTodayFoodsList() {
     
     const today = getTodayData();
     list.innerHTML = '';
-    today.foods.forEach((food, i) => {
-        list.innerHTML += `<li>
-            ${food.name} (${food.quantity}g)
-            <button onclick="removeFood(${i})" class="btn-small">✕</button>
-        </li>`;
-    });
+    if (today.foods) {
+        today.foods.forEach((food, i) => {
+            list.innerHTML += `<li>
+                ${food.name} (${food.quantity}g)
+                <button onclick="removeFood(${i})" class="btn-small">✕</button>
+            </li>`;
+        });
+    }
 }
 
 function removeFood(index) {
     const today = getTodayData();
-    today.foods.splice(index, 1);
-    today.foodHistory = today.foodHistory.filter(i => i !== index);
-    updateAllDisplays();
-    updateTodayFoodsList();
-    saveState();
+    if (today.foods) {
+        today.foods.splice(index, 1);
+        today.foodHistory = today.foodHistory ? today.foodHistory.filter(i => i !== index) : [];
+        updateAllDisplays();
+        updateTodayFoodsList();
+        saveState();
+    }
 }
 
 function undoLastFood() {
     const today = getTodayData();
-    if (today.foodHistory.length > 0) {
+    if (today.foodHistory && today.foodHistory.length > 0) {
         today.foods.pop();
         today.foodHistory.pop();
         updateAllDisplays();
@@ -728,7 +754,7 @@ function addSteps() {
     const steps = parseInt(document.getElementById('stepsInput')?.value);
     if (steps && steps > 0) {
         const today = getTodayData();
-        today.steps += steps;
+        today.steps = (today.steps || 0) + steps;
         updateAllDisplays();
         document.getElementById('stepsInput').value = '';
         saveState();
@@ -739,7 +765,8 @@ function logExercise() {
     const duration = parseInt(document.getElementById('exerciseDuration')?.value);
     if (duration && duration > 0) {
         const today = getTodayData();
-        today.exercise.duration += duration;
+        if (!today.exercise) today.exercise = { duration: 0, sessions: [] };
+        today.exercise.duration = (today.exercise.duration || 0) + duration;
         today.exercise.sessions.push({ duration });
         updateAllDisplays();
         document.getElementById('exerciseDuration').value = '30';
@@ -749,9 +776,9 @@ function logExercise() {
 
 function undoLastExercise() {
     const today = getTodayData();
-    if (today.exercise.sessions.length > 0) {
+    if (today.exercise && today.exercise.sessions && today.exercise.sessions.length > 0) {
         const last = today.exercise.sessions.pop();
-        today.exercise.duration -= last.duration;
+        today.exercise.duration = (today.exercise.duration || 0) - last.duration;
         if (today.exercise.duration < 0) today.exercise.duration = 0;
         updateAllDisplays();
         saveState();
@@ -806,6 +833,7 @@ function logBowel() {
     };
     
     const today = getTodayData();
+    if (!today.bowel) today.bowel = [];
     today.bowel.push({ time, type: parseInt(type), symptoms });
     
     updateAllDisplays();
@@ -815,7 +843,7 @@ function logBowel() {
 
 function undoLastBowel() {
     const today = getTodayData();
-    if (today.bowel.length > 0) {
+    if (today.bowel && today.bowel.length > 0) {
         today.bowel.pop();
         updateAllDisplays();
         saveState();
@@ -879,7 +907,8 @@ function logMeditation() {
         const minutes = Math.round((new Date() - currentMeditationSession.startTime) / 60000);
         if (minutes > 0) {
             const today = getTodayData();
-            today.meditation.total += minutes;
+            if (!today.meditation) today.meditation = { total: 0, sessions: [] };
+            today.meditation.total = (today.meditation.total || 0) + minutes;
             today.meditation.sessions.push({ minutes });
             updateAllDisplays();
             saveState();
@@ -892,9 +921,9 @@ function logMeditation() {
 
 function undoLastMeditation() {
     const today = getTodayData();
-    if (today.meditation.sessions.length > 0) {
+    if (today.meditation && today.meditation.sessions && today.meditation.sessions.length > 0) {
         const last = today.meditation.sessions.pop();
-        today.meditation.total -= last.minutes;
+        today.meditation.total = (today.meditation.total || 0) - last.minutes;
         if (today.meditation.total < 0) today.meditation.total = 0;
         updateAllDisplays();
         saveState();
@@ -981,8 +1010,8 @@ function saveProfileChanges() {
     appState.user.wakeUpTime = document.getElementById('editWakeUp').value;
     appState.user.bedTime = document.getElementById('editBedTime').value;
     
-    updateUserInfoDisplay();
     calculateNeeds();
+    updateUserInfoDisplay();
     updateAllDisplays();
     saveState();
     closeEditModal();
@@ -1000,7 +1029,7 @@ function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sante-${currentDay}.json`;
+    a.download = `sante-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
 }
 
@@ -1038,28 +1067,12 @@ function loadSavedData() {
                 appState.daily = parsed.daily || {};
                 appState.notifications = parsed.notifications || [];
                 
-                currentDay = new Date().toISOString().split('T')[0];
-                
-                if (!appState.daily[currentDay]) {
-                    appState.daily[currentDay] = {
-                        date: currentDay,
-                        sleep: { hours: 0, quality: '' },
-                        water: 0,
-                        waterHistory: [],
-                        foods: [],
-                        foodHistory: [],
-                        exercise: { duration: 0, sessions: [] },
-                        steps: 0,
-                        meditation: { total: 0, sessions: [] },
-                        bowel: []
-                    };
-                }
+                calculateNeeds();
                 
                 document.getElementById('ageModal').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
                 
                 updateUserInfoDisplay();
-                calculateNeeds();
                 updateAllDisplays();
                 loadFoodSelect();
                 updateFoodDatabaseList();
@@ -1073,6 +1086,7 @@ function loadSavedData() {
 
 // ==================== INITIALISATION ====================
 window.onload = function() {
+    console.log("Page chargée");
     loadSavedData();
     setMeditationTime(5);
     updateDateTime();
